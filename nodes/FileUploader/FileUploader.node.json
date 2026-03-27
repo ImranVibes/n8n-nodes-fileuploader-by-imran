@@ -1,0 +1,28 @@
+{
+	"node": "n8n-nodes-base.fileUploader",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/ImranVibes/n8n-nodes-fileuploader-by-imran"
+			}
+		]
+	},
+	"alias": [
+		"file",
+		"upload",
+		"temporary",
+		"temp",
+		"hosting",
+		"image",
+		"storage",
+		"public url",
+		"share",
+		"link"
+	],
+	"subcategories": {
+		"Data & Storage": ["File Management"]
+	}
+}

@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-fileuploader-by-imran",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Store files temporarily and get a public URL on the same domain as n8n. Made with love by Imran.",
   "keywords": [
     "n8n-community-node-package",
@@ -8,7 +8,9 @@
     "file",
     "upload",
     "temporary",
-    "hosting"
+    "hosting",
+    "storage",
+    "public-url"
   ],
   "license": "MIT",
   "homepage": "https://github.com/ImranVibes/n8n-nodes-fileuploader-by-imran",
@@ -18,13 +20,21 @@
   },
   "main": "dist/FileUploader.node.js",
   "scripts": {
-    "build": "tsc && copy nodes\\FileUploader\\*.??g dist\\",
+    "build": "tsc && copy nodes\\FileUploader\\*.??g dist\\ && copy nodes\\FileUploader\\*.json dist\\",
+    "lint": "eslint nodes/**/*.ts",
+    "test": "jest",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "n8n-workflow": "^0.111.0",
     "typescript": "^4.8.4",
-    "@types/node": "^18.11.9"
+    "@types/node": "^18.11.9",
+    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "@types/jest": "^29.5.12"
   },
   "n8n": {
     "nodes": [

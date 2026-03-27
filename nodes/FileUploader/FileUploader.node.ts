@@ -281,7 +281,8 @@ export class FileUploader implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const storagePath = process.env.FILE_UPLOADER_PATH || path.join(os.tmpdir(), 'n8n-temp-files');
+		const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
+		const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
 
 		if (!fs.existsSync(storagePath)) {
 			fs.mkdirSync(storagePath, { recursive: true });

@@ -96,31 +96,31 @@ The node automatically detects your public URL using these variables (in order o
 
 | Variable              | Description                        |
 | --------------------- | ---------------------------------- |
-| `FILE_UPLOADER_PATH`  | **Storage directory** for temp files (default: OS temp dir) |
+| `FILE_UPLOADER_PATH`  | **Storage directory** for temp files (default: `~/.n8n/temp-files`) |
 | `WEBHOOK_URL`         | Primary webhook URL                |
 | `N8N_PUBLIC_URL`      | Public-facing n8n URL              |
 | `N8N_EDITOR_BASE_URL` | Editor base URL                    |
 
-> **Important:** If `FILE_UPLOADER_PATH` is not set, files are stored in your system's temp directory (`/tmp/n8n-temp-files` on Linux). For Docker setups with Nginx serving files, set this to your shared volume path (e.g., `/data/shared/public/temp-files`).
+> **Important:** This node uses **Hybrid Memory-Sync**. Files are stored both on disk and in the web-server's memory. This ensures it works instantly even on distributed hostings (like n8n Cloud or scaling Docker setups) where the worker and web-server don't share a filesystem. 🚀
 
 ---
 
 ## 🐛 Troubleshooting
 
-### File not accessible via URL
-- Ensure your **Nginx reverse proxy** is configured to serve files from `/data/shared/public/temp-files`.
-- Check that the Nginx location block `/f/` is pointing to the correct directory.
+### "No files uploaded yet" or 404 Error
+- Ensure you have **run the upload at least once**. The server only initializes when the first file is processed.
+- If you are on a very restricted hosting, verify that your n8n instance can make **internal HTTP requests** to itself.
+- Check your n8n console logs for any `[FileUploader]` error messages.
 
 ### Wrong URL generated
-- Verify that `WEBHOOK_URL` or `N8N_PUBLIC_URL` is correctly set in your environment variables.
-- Use the **Public URL override** in Additional fields to manually set the correct URL.
+- The node tries to guess your URL. If it's wrong, set the `N8N_PUBLIC_URL` or `WEBHOOK_URL` environment variable.
+- You can also use the **Public URL override** in the **Additional Fields** section of the node to manually force a specific domain.
 
 ### File expired immediately
-- Check your system clock. The cleanup worker relies on accurate system time.
-- Ensure the cleanup container's timezone matches the n8n container.
+- Check your system clock. The cleanup worker relies on accurate system time for expiration logic.
 
 ### Permission denied errors
-- The node sets `777` permissions on files for cross-container access. Ensure your volume mounts allow this.
+- On Linux/Docker, ensure the n8n user has write access to the `.n8n` directory or your custom `FILE_UPLOADER_PATH`.
 
 ---
 

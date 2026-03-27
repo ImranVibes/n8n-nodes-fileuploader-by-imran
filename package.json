@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-fileuploader-by-imran",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Store files temporarily and get a public URL on the same domain as n8n. Made with love by Imran.",
   "keywords": [
     "n8n-community-node-package",
@@ -84,7 +84,7 @@
   },
   "main": "dist/FileUploader.node.js",
   "scripts": {
-    "build": "tsc && copy nodes\\FileUploader\\*.??g dist\\FileUploader\\ && copy nodes\\FileUploader\\*.json dist\\FileUploader\\ && copy nodes\\FileServer\\*.??g dist\\FileServer\\",
+    "build": "tsc && copy nodes\\FileUploader\\*.??g dist\\FileUploader\\ && copy nodes\\FileUploader\\*.json dist\\FileUploader\\",
     "lint": "eslint nodes/**/*.ts",
     "test": "jest",
     "prepublishOnly": "npm run build"
@@ -102,8 +102,7 @@
   },
   "n8n": {
     "nodes": [
-      "dist/FileUploader/FileUploader.node.js",
-      "dist/FileServer/FileServer.node.js"
+      "dist/FileUploader/FileUploader.node.js"
     ]
   }
 }

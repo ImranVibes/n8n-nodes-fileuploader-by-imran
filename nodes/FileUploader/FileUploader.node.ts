@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as os from 'os';
+import { ensureServerRunning } from './fileServer';
 
 export class FileUploader implements INodeType {
 	description: INodeTypeDescription = {
@@ -235,7 +236,7 @@ export class FileUploader implements INodeType {
 			id,
 			fileName: file,
 			originalName,
-			fileUrl: `${baseUrl}webhook/temp-file-serve?id=${id}`,
+			fileUrl: `${baseUrl}?id=${id}`,
 			mimeType: ext ? `${FileUploader.extToMime(ext)}` : 'application/octet-stream',
 			sizeBytes: stats.size,
 			sizeFormatted: FileUploader.formatBytes(stats.size),
@@ -284,7 +285,12 @@ export class FileUploader implements INodeType {
 		}
 
 		const operation = this.getNodeParameter('operation', 0) as string;
-		const defaultBaseUrl = ((process.env.WEBHOOK_URL || process.env.N8N_PUBLIC_URL || process.env.N8N_EDITOR_BASE_URL || 'http://localhost:5678') as string).replace(/\/+$/, '') + '/';
+
+		// Start embedded file server & build base URL
+		const port = await ensureServerRunning();
+		const rawBase = (process.env.WEBHOOK_URL || process.env.N8N_PUBLIC_URL || process.env.N8N_EDITOR_BASE_URL || 'http://localhost:5678') as string;
+		const urlObj = new URL(rawBase.replace(/\/+$/, ''));
+		const fileServerBase = `${urlObj.protocol}//${urlObj.hostname}:${port}`;
 
 		// ── LIST ──
 		if (operation === 'list') {
@@ -292,7 +298,7 @@ export class FileUploader implements INodeType {
 			const fileList: Record<string, any>[] = [];
 			for (const file of files) {
 				try {
-					fileList.push(FileUploader.buildFileInfo(storagePath, file, defaultBaseUrl));
+					fileList.push(FileUploader.buildFileInfo(storagePath, file, fileServerBase));
 				} catch {
 					// File may have been deleted between readdir and stat
 				}
@@ -308,7 +314,7 @@ export class FileUploader implements INodeType {
 					if (!file) {
 						throw new NodeOperationError(this.getNode(), `No file found with ID "${fileId}". It may have expired or been deleted.`);
 					}
-					returnData.push({ json: FileUploader.buildFileInfo(storagePath, file, defaultBaseUrl) });
+					returnData.push({ json: FileUploader.buildFileInfo(storagePath, file, fileServerBase) });
 				} catch (error) {
 					if (this.continueOnFail()) {
 						returnData.push({ json: { error: (error as Error).message } });
@@ -356,7 +362,6 @@ export class FileUploader implements INodeType {
 			for (let i = 0; i < items.length; i++) {
 				try {
 					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
-					const baseUrl = FileUploader.getBaseUrl(this, i);
 					const expirationMinutes = FileUploader.parseExpiration(this, i);
 
 					if (!items[i].binary || !items[i].binary![binaryPropertyName]) {
@@ -402,7 +407,7 @@ export class FileUploader implements INodeType {
 					returnData.push({
 						json: {
 							id: fileId,
-							fileUrl: `${baseUrl}webhook/temp-file-serve?id=${fileId}`,
+							fileUrl: `${fileServerBase}?id=${fileId}`,
 							fileName,
 							originalName: binaryData.fileName || 'file',
 							mimeType: binaryData.mimeType || 'application/octet-stream',

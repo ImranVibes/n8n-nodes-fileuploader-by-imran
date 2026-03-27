@@ -419,24 +419,21 @@ export class FileUploader implements INodeType {
 					});
 
 					// ── INTERNAL SYNC (Push to Web Server Memory) ──
-					try {
-						const urlObj = new URL(baseUrl);
-						const syncUrl = `${urlObj.protocol}//${urlObj.hostname}:${urlObj.port || (urlObj.protocol === 'https:' ? '443' : '5678')}/f/sync?id=${fileId}&name=${encodeURIComponent(binaryData.fileName || 'file')}&mime=${encodeURIComponent(binaryData.mimeType || 'application/octet-stream')}&ttl=${expirationMinutes}`;
-						
-						const syncReq = http.request(syncUrl, {
-							method: 'POST',
-						}, (res) => {
-							res.on('data', () => { /* consume */ });
-						});
-						
-						syncReq.on('error', () => {
-							// Silent fail - disk fallback might still work for local users
-						});
-						
-						syncReq.write(buffer);
-						syncReq.end();
-					} catch {
-						// Ignore sync errors
+					const syncData = { id: fileId, name: binaryData.fileName || 'file', mime: binaryData.mimeType || 'application/octet-stream', ttl: expirationMinutes };
+					const syncPaths = [
+						`http://localhost:5678/f/sync?id=${syncData.id}&name=${encodeURIComponent(syncData.name)}&mime=${encodeURIComponent(syncData.mime)}&ttl=${syncData.ttl}`,
+						`${baseUrl}f/sync?id=${syncData.id}&name=${encodeURIComponent(syncData.name)}&mime=${encodeURIComponent(syncData.mime)}&ttl=${syncData.ttl}`
+					];
+
+					for (const syncUrl of syncPaths) {
+						try {
+							const syncReq = http.request(syncUrl, { method: 'POST' }, (res) => {
+								res.on('data', () => { /* consume */ });
+							});
+							syncReq.on('error', () => { /* ignore */ });
+							syncReq.write(buffer);
+							syncReq.end();
+						} catch { /* ignore */ }
 					}
 				} catch (error) {
 					if (this.continueOnFail()) {

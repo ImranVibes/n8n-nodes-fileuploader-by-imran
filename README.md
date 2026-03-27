@@ -8,9 +8,9 @@ A professional n8n community node for **temporary file hosting** with **ID-based
 
 ## ✨ Features
 
-- 🔌 **Zero Config File Serving** — Built-in webhook file server, no Nginx or external web server needed.
+- 🔌 **True Zero-Config** — Built-in native HTTP hijacker. Install the node and it serves files instantly. No Nginx, no webhooks, no port-forwarding required.
 - 🆔 **Unique File IDs** — Every upload gets a 12-character hex ID for easy reference, retrieval, and deletion.
-- 🚀 **Instant Public URL** — Host any binary file on the same domain as your n8n instance.
+- 🚀 **Instant Public URL** — Host any binary file directly on your n8n instance's URL (`/f/filename.jpg`).
 - 📋 **Rich File Listing** — See all active files with ID, URL, MIME type, size, status, and expiration.
 - 🔍 **Get by ID** — Retrieve full metadata for any file using its unique ID.
 - 🗑️ **Delete by ID or Purge** — Precisely remove files using their ID or clear everything at once.
@@ -33,12 +33,7 @@ Or install through the **n8n Community Nodes** settings in your instance.
 
 ---
 
-## 🔧 Included Nodes
-
-This package installs **two nodes**:
-
-### 1. Temporary File Uploader
-The main node for uploading, managing, and querying files.
+## 🔧 Operations
 
 | Operation    | Description                                                     |
 | ------------ | --------------------------------------------------------------- |
@@ -47,30 +42,28 @@ The main node for uploading, managing, and querying files.
 | **Get Many** | List all active files with full metadata in a single output     |
 | **Delete**   | Remove a file by ID or purge all temporary files                |
 
-### 2. Temp File Server (Trigger)
-A webhook-based file server that serves uploaded files through n8n's own HTTP server. **No Nginx or external web server required.**
-
 ---
 
-## ⚡ Quick Start (Zero Config)
+## ⚡ Quick Start (True Zero Config)
 
-### Step 1: Create the File Server workflow
-1. Create a **new workflow** in n8n.
-2. Add the **"Temp File Server"** trigger node.
-3. Leave the webhook path as default (`temp-file-serve`).
-4. **Activate** the workflow.
-
-### Step 2: Upload files
-1. In any other workflow, add the **"Temporary File Uploader"** node.
+### Upload
+1. In any workflow, add the **"Temporary File Uploader"** node.
 2. Connect a node that outputs binary data (e.g., HTTP Request).
-3. Run the workflow — you'll get a public URL like:
+3. Run the workflow — you'll get a public URL on your n8n instance like:
    ```
-   https://your-n8n.com/webhook/temp-file-serve?id=abc123def456
+   https://your-n8n.com/f/abc123def456-image.jpg
    ```
 4. Open the URL in your browser — the file is served instantly! 🎉
 
-### Step 3: Manage files
-Use **Get**, **Get Many**, or **Delete** operations to manage your files by ID.
+*(No extra workflows, no opened ports, no proxy setup required!)*
+
+### Get / Delete
+1. Use the `id` from a previous Upload output.
+2. Paste it into the **File ID** field.
+
+### Get Many
+1. Run the node with **Get Many** selected.
+2. Receive a single output containing `totalFiles` and a `files` array with all active file details.
 
 ---
 

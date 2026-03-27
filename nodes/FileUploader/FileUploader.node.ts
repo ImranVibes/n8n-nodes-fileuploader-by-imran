@@ -283,8 +283,10 @@ export class FileUploader implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
 		const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
+		console.log(`[FileUploader] Worker Storage: ${storagePath} (cwd: ${process.cwd()})`);
 
 		if (!fs.existsSync(storagePath)) {
+			console.log(`[FileUploader] Creating storage directory: ${storagePath}`);
 			fs.mkdirSync(storagePath, { recursive: true });
 		}
 

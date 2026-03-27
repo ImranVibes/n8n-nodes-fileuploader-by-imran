@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-fileuploader-by-imran",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Store files temporarily and get a public URL on the same domain as n8n. Made with love by Imran.",
   "keywords": [
     "n8n-community-node-package",

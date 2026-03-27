@@ -28,7 +28,9 @@ const MIME_MAP: Record<string, string> = {
 
 function getStoragePath(): string {
 	const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
-	return process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
+	const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
+	console.log(`[FileUploader] Storage Path Resolve: ${storagePath} (exists: ${fs.existsSync(storagePath)})`);
+	return storagePath;
 }
 
 function getMime(ext: string): string {

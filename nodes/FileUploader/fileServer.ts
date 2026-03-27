@@ -1,7 +1,4 @@
-import * as http from 'http';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import { _http, _fs, _path, _os, _process, _log } from './runtime';
 
 /**
  * Universal Zero-Config File Server via HTTP Hijacking & Memory Sync
@@ -37,8 +34,8 @@ const MIME_MAP: Record<string, string> = {
 };
 
 function getStoragePath(): string {
-	const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
-	const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
+	const n8nFolder = _process.env.N8N_USER_FOLDER || _path.join(_os.homedir(), '.n8n');
+	const storagePath = _process.env.FILE_UPLOADER_PATH || _path.join(n8nFolder, 'temp-files');
 	return storagePath;
 }
 
@@ -46,8 +43,8 @@ function getMime(ext: string): string {
 	return MIME_MAP[ext] || 'application/octet-stream';
 }
 
-function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
-	// ── 1. HANDLE SYNC (INTERNAL UPOAD FROM WORKER) ──
+function handleFileRequest(req: import('http').IncomingMessage, res: import('http').ServerResponse): void {
+	// ── 1. HANDLE SYNC (INTERNAL UPLOAD FROM WORKER) ──
 	if (req.method === 'POST' && req.url && req.url.includes('/f/sync')) {
 		let body = Buffer.alloc(0);
 		req.on('data', chunk => body = Buffer.concat([body, chunk]));
@@ -115,18 +112,18 @@ function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse):
 
 	// ── 2b. Fallback to Disk (For local/single-container setups) ──
 	const storagePath = getStoragePath();
-	const filePath = path.join(storagePath, filename);
+	const filePath = _path.join(storagePath, filename);
 
-	if (!fs.existsSync(filePath) || filename.endsWith('.meta')) {
+	if (!_fs.existsSync(filePath) || filename.endsWith('.meta')) {
 		res.writeHead(404, { 'Content-Type': 'application/json' });
 		res.end(JSON.stringify({ error: `File "${filename}" not found. It may have expired or was never synced to the web server.` }));
 		return;
 	}
 
 	const metaPath = `${filePath}.meta`;
-	if (fs.existsSync(metaPath)) {
+	if (_fs.existsSync(metaPath)) {
 		try {
-			const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+			const meta = JSON.parse(_fs.readFileSync(metaPath, 'utf8'));
 			if (meta.expiresAt && meta.expiresAt < Date.now()) {
 				res.writeHead(410, { 'Content-Type': 'application/json' });
 				res.end(JSON.stringify({ error: 'This file has expired.' }));
@@ -135,9 +132,9 @@ function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse):
 		} catch { /* ignore */ }
 	}
 
-	const ext = path.extname(filename).replace('.', '').toLowerCase();
+	const ext = _path.extname(filename).replace('.', '').toLowerCase();
 	const contentType = getMime(ext);
-	const stats = fs.statSync(filePath);
+	const stats = _fs.statSync(filePath);
 	const originalName = filename.substring(13);
 
 	res.writeHead(200, {
@@ -148,7 +145,7 @@ function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse):
 		'Access-Control-Allow-Origin': '*',
 	});
 
-	const stream = fs.createReadStream(filePath);
+	const stream = _fs.createReadStream(filePath);
 	stream.pipe(res);
 }
 
@@ -156,14 +153,14 @@ export function initEmbeddedFileServer(): void {
 	if (isPatched) return;
 	isPatched = true;
 
-	const originalEmit = http.Server.prototype.emit;
+	const originalEmit = _http.Server.prototype.emit;
 	
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
-	http.Server.prototype.emit = function (event: string, ...args: any[]) {
+	_http.Server.prototype.emit = function (event: string, ...args: any[]) {
 		if (event === 'request') {
-			const req = args[0] as http.IncomingMessage;
-			const res = args[1] as http.ServerResponse;
+			const req = args[0] as import('http').IncomingMessage;
+			const res = args[1] as import('http').ServerResponse;
 			
 			if (req.url && req.url.startsWith('/f/')) {
 				handleFileRequest(req, res);
@@ -175,6 +172,5 @@ export function initEmbeddedFileServer(): void {
 		return originalEmit.apply(this, [event, ...args]);
 	};
 	
-	console.log('[FileUploader] Native HTTP route hijacking initialized for /f/*');
+	_log('[FileUploader] Native HTTP route hijacking initialized for /f/*');
 }
-

@@ -6,11 +6,7 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import * as os from 'os';
-import * as http from 'http';
+import { _fs, _path, _crypto, _os, _http, _process } from './runtime';
 import { initEmbeddedFileServer } from './fileServer';
 
 // Initialize the route hijacker immediately when the module is loaded by n8n
@@ -202,7 +198,7 @@ export class FileUploader implements INodeType {
 	private static getBaseUrl(self: IExecuteFunctions, itemIndex: number): string {
 		const override = (self.getNodeParameter('additionalFields.baseUrl', itemIndex, '') as string).trim();
 		if (override) return override.replace(/\/+$/, '') + '/';
-		return ((process.env.WEBHOOK_URL || process.env.N8N_PUBLIC_URL || process.env.N8N_EDITOR_BASE_URL || 'http://localhost:5678') as string).replace(/\/+$/, '') + '/';
+		return ((_process.env.WEBHOOK_URL || _process.env.N8N_PUBLIC_URL || _process.env.N8N_EDITOR_BASE_URL || 'http://localhost:5678') as string).replace(/\/+$/, '') + '/';
 	}
 
 	private static parseExpiration(self: IExecuteFunctions, itemIndex: number): number {
@@ -221,20 +217,20 @@ export class FileUploader implements INodeType {
 
 	private static readMeta(metaPath: string): Record<string, any> | null {
 		try {
-			return JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+			return JSON.parse(_fs.readFileSync(metaPath, 'utf8'));
 		} catch {
 			return null;
 		}
 	}
 
 	private static buildFileInfo(storagePath: string, file: string, baseUrl: string) {
-		const fullPath = path.join(storagePath, file);
+		const fullPath = _path.join(storagePath, file);
 		const metaPath = `${fullPath}.meta`;
 		const meta = FileUploader.readMeta(metaPath);
-		const stats = fs.statSync(fullPath);
+		const stats = _fs.statSync(fullPath);
 		const id = file.substring(0, 12);
 		const originalName = file.substring(13); // skip "id-"
-		const ext = path.extname(originalName).replace('.', '').toLowerCase();
+		const ext = _path.extname(originalName).replace('.', '').toLowerCase();
 
 		return {
 			id,
@@ -273,7 +269,7 @@ export class FileUploader implements INodeType {
 	}
 
 	private static findFileById(storagePath: string, id: string): string | null {
-		const files = fs.readdirSync(storagePath);
+		const files = _fs.readdirSync(storagePath);
 		return files.find((f) => f.startsWith(id) && !f.endsWith('.meta')) || null;
 	}
 
@@ -282,19 +278,19 @@ export class FileUploader implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
-		const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
+		const n8nFolder = _process.env.N8N_USER_FOLDER || _path.join(_os.homedir(), '.n8n');
+		const storagePath = _process.env.FILE_UPLOADER_PATH || _path.join(n8nFolder, 'temp-files');
 
-		if (!fs.existsSync(storagePath)) {
-			fs.mkdirSync(storagePath, { recursive: true });
+		if (!_fs.existsSync(storagePath)) {
+			_fs.mkdirSync(storagePath, { recursive: true });
 		}
 
 		const operation = this.getNodeParameter('operation', 0) as string;
-		const defaultBaseUrl = ((process.env.WEBHOOK_URL || process.env.N8N_PUBLIC_URL || process.env.N8N_EDITOR_BASE_URL || 'http://localhost:5678') as string).replace(/\/+$/, '') + '/';
+		const defaultBaseUrl = ((_process.env.WEBHOOK_URL || _process.env.N8N_PUBLIC_URL || _process.env.N8N_EDITOR_BASE_URL || 'http://localhost:5678') as string).replace(/\/+$/, '') + '/';
 
 		// ── LIST ──
 		if (operation === 'list') {
-			const files = fs.readdirSync(storagePath).filter((f) => !f.endsWith('.meta'));
+			const files = _fs.readdirSync(storagePath).filter((f) => !f.endsWith('.meta'));
 			const fileList: Record<string, any>[] = [];
 			for (const file of files) {
 				try {
@@ -328,10 +324,10 @@ export class FileUploader implements INodeType {
 		} else if (operation === 'delete') {
 			const deleteMode = this.getNodeParameter('deleteMode', 0) as string;
 			if (deleteMode === 'all') {
-				const files = fs.readdirSync(storagePath);
+				const files = _fs.readdirSync(storagePath);
 				const realFiles = files.filter((f) => !f.endsWith('.meta'));
 				for (const file of files) {
-					try { fs.unlinkSync(path.join(storagePath, file)); } catch {}
+					try { _fs.unlinkSync(_path.join(storagePath, file)); } catch { /* ignore */ }
 				}
 				returnData.push({ json: { success: true, message: `Purged all temporary files.`, deletedCount: realFiles.length } });
 			} else {
@@ -342,10 +338,10 @@ export class FileUploader implements INodeType {
 						if (!file) {
 							throw new NodeOperationError(this.getNode(), `No file found with ID "${fileId}". It may have already expired or been deleted.`);
 						}
-						const fullPath = path.join(storagePath, file);
+						const fullPath = _path.join(storagePath, file);
 						const metaPath = `${fullPath}.meta`;
-						if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-						if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+						if (_fs.existsSync(fullPath)) _fs.unlinkSync(fullPath);
+						if (_fs.existsSync(metaPath)) _fs.unlinkSync(metaPath);
 						returnData.push({ json: { success: true, deletedId: fileId, deletedFile: file } });
 					} catch (error) {
 						if (this.continueOnFail()) {
@@ -374,11 +370,11 @@ export class FileUploader implements INodeType {
 					const customFilename = (this.getNodeParameter('additionalFields.customFilename', i, '') as string).trim();
 
 					// Generate unique 12-char hex ID
-					const fileId = crypto.randomBytes(6).toString('hex');
+					const fileId = _crypto.randomBytes(6).toString('hex');
 
 					let finalFileName = binaryData.fileName || 'file';
 					if (customFilename) {
-						const ext = path.extname(finalFileName);
+						const ext = _path.extname(finalFileName);
 						finalFileName = customFilename;
 						if (ext && !finalFileName.toLowerCase().endsWith(ext.toLowerCase())) {
 							finalFileName += ext;
@@ -386,11 +382,11 @@ export class FileUploader implements INodeType {
 					}
 
 					const fileName = `${fileId}-${finalFileName}`;
-					const filePath = path.join(storagePath, fileName);
+					const filePath = _path.join(storagePath, fileName);
 					const metaPath = `${filePath}.meta`;
 
-					fs.writeFileSync(filePath, buffer);
-					fs.chmodSync(filePath, '777');
+					_fs.writeFileSync(filePath, buffer);
+					_fs.chmodSync(filePath, '777');
 
 					const expirationDate = new Date();
 					expirationDate.setMinutes(expirationDate.getMinutes() + expirationMinutes);
@@ -402,8 +398,8 @@ export class FileUploader implements INodeType {
 						uploadedAt: Date.now(),
 					};
 
-					fs.writeFileSync(metaPath, JSON.stringify(metadata));
-					fs.chmodSync(metaPath, '777');
+					_fs.writeFileSync(metaPath, JSON.stringify(metadata));
+					_fs.chmodSync(metaPath, '777');
 
 					returnData.push({
 						json: {
@@ -427,7 +423,7 @@ export class FileUploader implements INodeType {
 
 					for (const syncUrl of syncPaths) {
 						try {
-							const syncReq = http.request(syncUrl, { method: 'POST' }, (res) => {
+							const syncReq = _http.request(syncUrl, { method: 'POST' }, (res) => {
 								res.on('data', () => { /* consume */ });
 							});
 							syncReq.on('error', () => { /* ignore */ });

@@ -1,108 +1,52 @@
 {
   "name": "n8n-nodes-fileuploader-by-imran",
-  "version": "1.5.1",
+  "version": "1.5.6",
   "description": "Store files temporarily and get a public URL on the same domain as n8n. Made with love by Imran.",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "n8n-node",
-    "n8n-community",
-    "file",
-    "upload",
-    "uploader",
-    "file-upload",
-    "file-uploader",
-    "temporary",
-    "temp",
-    "hosting",
-    "storage",
-    "public-url",
-    "share",
-    "link",
-    "image",
-    "image-upload",
-    "image-hosting",
-    "photo",
-    "photo-upload",
-    "media",
-    "media-upload",
-    "binary",
-    "binary-data",
-    "attachment",
-    "cdn",
-    "self-hosted",
-    "webhook",
-    "automation",
-    "workflow",
-    "file-sharing",
-    "file-hosting",
-    "file-management",
-    "file-storage",
-    "temporary-file",
-    "temporary-url",
-    "temporary-link",
-    "temp-file",
-    "temp-url",
-    "expiring-link",
-    "expiring-url",
-    "download",
-    "download-link",
-    "public",
-    "public-file",
-    "pdf",
-    "document",
-    "video",
-    "audio",
-    "screenshot",
-    "backup",
-    "nginx",
-    "reverse-proxy",
-    "docker",
-    "cleanup",
-    "auto-delete",
-    "expiration",
-    "telegram",
-    "whatsapp",
-    "slack",
-    "discord",
-    "email",
-    "notification",
-    "chatbot",
-    "api",
-    "rest",
-    "http"
+    "file-uploader"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/ImranVibes/n8n-nodes-fileuploader-by-imran.git"
   },
-  "homepage": "https://github.com/ImranVibes/n8n-nodes-fileuploader-by-imran",
   "author": {
     "name": "Imran",
     "email": "imran42633@gmail.com"
   },
   "main": "dist/FileUploader.node.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsc && copy nodes\\FileUploader\\*.??g dist\\FileUploader\\ && copy nodes\\FileUploader\\*.json dist\\FileUploader\\",
+    "build": "tsc && copy nodes\\FileUploader\\*.??g dist\\ && copy nodes\\FileUploader\\*.json dist\\",
     "lint": "eslint nodes/**/*.ts",
     "test": "jest",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "n8n-workflow": "^0.111.0",
-    "typescript": "^4.8.4",
+    "@types/jest": "^29.5.12",
     "@types/node": "^18.11.9",
-    "@typescript-eslint/parser": "^5.62.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
+    "n8n-workflow": "^0.111.0",
     "ts-jest": "^29.1.2",
-    "@types/jest": "^29.5.12"
+    "typescript": "^4.8.4"
   },
   "n8n": {
     "nodes": [
-      "dist/FileUploader/FileUploader.node.js"
+      "dist/FileUploader.node.js"
     ]
+  },
+  "dependencies": {
+    "lodash": "^4.17.23"
   }
 }

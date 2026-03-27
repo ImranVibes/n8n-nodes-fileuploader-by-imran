@@ -235,7 +235,7 @@ export class FileUploader implements INodeType {
 			id,
 			fileName: file,
 			originalName,
-			fileUrl: `${baseUrl}f/${file}`,
+			fileUrl: `${baseUrl}webhook/temp-file-serve?id=${id}`,
 			mimeType: ext ? `${FileUploader.extToMime(ext)}` : 'application/octet-stream',
 			sizeBytes: stats.size,
 			sizeFormatted: FileUploader.formatBytes(stats.size),
@@ -402,7 +402,7 @@ export class FileUploader implements INodeType {
 					returnData.push({
 						json: {
 							id: fileId,
-							fileUrl: `${baseUrl}f/${fileName}`,
+							fileUrl: `${baseUrl}webhook/temp-file-serve?id=${fileId}`,
 							fileName,
 							originalName: binaryData.fileName || 'file',
 							mimeType: binaryData.mimeType || 'application/octet-stream',

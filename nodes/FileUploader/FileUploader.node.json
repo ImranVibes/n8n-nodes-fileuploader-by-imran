@@ -13,14 +13,32 @@
 	"alias": [
 		"file",
 		"upload",
+		"uploader",
 		"temporary",
 		"temp",
 		"hosting",
 		"image",
+		"image upload",
+		"photo",
+		"media",
 		"storage",
 		"public url",
 		"share",
-		"link"
+		"link",
+		"attachment",
+		"cdn",
+		"binary",
+		"download",
+		"expiring link",
+		"temp file",
+		"temp url",
+		"self hosted",
+		"file share",
+		"screenshot",
+		"pdf",
+		"document",
+		"video",
+		"audio"
 	],
 	"subcategories": {
 		"Data & Storage": ["File Management"]

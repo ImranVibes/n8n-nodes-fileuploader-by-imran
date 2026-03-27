@@ -2,7 +2,7 @@
 
 A professional n8n community node for **temporary file hosting** with **ID-based file management**. Upload any binary file, get a unique ID and a public URL instantly — no external services required.
 
-![Logo](nodes/FileUploader/fileUploader.png)
+![Logo](https://raw.githubusercontent.com/ImranVibes/n8n-nodes-fileuploader-by-imran/main/nodes/FileUploader/fileUploader.png)
 
 ---
 
@@ -91,11 +91,12 @@ The node automatically detects your public URL using these variables (in order o
 
 | Variable              | Description                        |
 | --------------------- | ---------------------------------- |
+| `FILE_UPLOADER_PATH`  | **Storage directory** for temp files (default: OS temp dir) |
 | `WEBHOOK_URL`         | Primary webhook URL                |
 | `N8N_PUBLIC_URL`      | Public-facing n8n URL              |
 | `N8N_EDITOR_BASE_URL` | Editor base URL                    |
 
-If none are set, it falls back to `http://localhost:5678`.
+> **Important:** If `FILE_UPLOADER_PATH` is not set, files are stored in your system's temp directory (`/tmp/n8n-temp-files` on Linux). For Docker setups with Nginx serving files, set this to your shared volume path (e.g., `/data/shared/public/temp-files`).
 
 ---
 
@@ -138,11 +139,11 @@ npm test
 
 ## 📝 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+See [CHANGELOG.md](https://github.com/ImranVibes/n8n-nodes-fileuploader-by-imran/blob/main/CHANGELOG.md) for version history.
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](https://github.com/ImranVibes/n8n-nodes-fileuploader-by-imran/blob/main/CONTRIBUTING.md) for guidelines.
 
 ---
 

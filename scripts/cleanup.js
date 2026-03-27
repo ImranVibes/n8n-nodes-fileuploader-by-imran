@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-const storagePath = '/data';
+const storagePath = process.env.FILE_UPLOADER_PATH || require('path').join(os.tmpdir(), 'n8n-temp-files');
 const LEGACY_EXPIRATION_MS = 60 * 60 * 1000; // 1 hour for old files without meta
 
 function cleanup() {

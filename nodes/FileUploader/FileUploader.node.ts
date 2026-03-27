@@ -9,6 +9,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as os from 'os';
 
 export class FileUploader implements INodeType {
 	description: INodeTypeDescription = {
@@ -276,7 +277,7 @@ export class FileUploader implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const storagePath = '/data/shared/public/temp-files';
+		const storagePath = process.env.FILE_UPLOADER_PATH || path.join(os.tmpdir(), 'n8n-temp-files');
 
 		if (!fs.existsSync(storagePath)) {
 			fs.mkdirSync(storagePath, { recursive: true });

@@ -4,12 +4,22 @@ import * as path from 'path';
 import * as os from 'os';
 
 /**
- * Zero-config File Server via HTTP Hijacking
- * Intercepts requests to /f/* natively within n8n's existing Express server 
- * without opening any new ports or requiring webhooks.
+ * Universal Zero-Config File Server via HTTP Hijacking & Memory Sync
+ * Intercepts requests to /f/* natively within n8n's existing Express server.
+ * Supports 'Memory Sync' to work on distributed hostings where workers don't share disk.
  */
 
 let isPatched = false;
+
+interface CachedFile {
+	buffer: Buffer;
+	mimeType: string;
+	originalName: string;
+	expiresAt: number;
+}
+
+// In-memory cache to support distributed worker processes
+const MEMORY_CACHE = new Map<string, CachedFile>();
 
 const MIME_MAP: Record<string, string> = {
 	jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
@@ -29,7 +39,6 @@ const MIME_MAP: Record<string, string> = {
 function getStoragePath(): string {
 	const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
 	const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
-	console.log(`[FileUploader] Storage Path Resolve: ${storagePath} (exists: ${fs.existsSync(storagePath)})`);
 	return storagePath;
 }
 
@@ -38,13 +47,44 @@ function getMime(ext: string): string {
 }
 
 function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
+	// ── 1. HANDLE SYNC (INTERNAL UPOAD FROM WORKER) ──
+	if (req.method === 'POST' && req.url && req.url.includes('/f/sync')) {
+		let body = Buffer.alloc(0);
+		req.on('data', chunk => body = Buffer.concat([body, chunk]));
+		req.on('end', () => {
+			try {
+				const url = new URL(req.url!, 'http://localhost');
+				const id = url.searchParams.get('id');
+				const name = url.searchParams.get('name') || 'file';
+				const mime = url.searchParams.get('mime') || 'application/octet-stream';
+				const ttl = parseInt(url.searchParams.get('ttl') || '60', 10);
+
+				if (!id) throw new Error('Missing ID');
+
+				MEMORY_CACHE.set(id, {
+					buffer: body,
+					mimeType: mime,
+					originalName: name,
+					expiresAt: Date.now() + (ttl * 60 * 1000)
+				});
+
+				res.writeHead(200, { 'Content-Type': 'application/json' });
+				res.end(JSON.stringify({ success: true }));
+			} catch (e) {
+				res.writeHead(400, { 'Content-Type': 'application/json' });
+				res.end(JSON.stringify({ error: (e as Error).message }));
+			}
+		});
+		return;
+	}
+
 	if (req.method !== 'GET') {
 		res.writeHead(405, { 'Content-Type': 'application/json' });
 		res.end(JSON.stringify({ error: 'Method not allowed' }));
 		return;
 	}
 
-	// Extract filename from URL (e.g., /f/123abc456def-image.jpg)
+	// ── 2. SERVE FILE (GET) ──
 	const urlParts = (req.url || '').split('?')[0].split('/');
 	const filename = urlParts[urlParts.length - 1];
 
@@ -54,24 +94,35 @@ function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse):
 		return;
 	}
 
-	const storagePath = getStoragePath();
-
-	if (!fs.existsSync(storagePath)) {
-		res.writeHead(404, { 'Content-Type': 'application/json' });
-		res.end(JSON.stringify({ error: 'No files uploaded yet.' }));
-		return;
+	// ── 2a. Check Memory Cache First (Fastest, works on distributed) ──
+	const fileId = filename.split('-')[0];
+	const cached = MEMORY_CACHE.get(fileId);
+	if (cached) {
+		if (cached.expiresAt < Date.now()) {
+			MEMORY_CACHE.delete(fileId);
+		} else {
+			res.writeHead(200, {
+				'Content-Type': cached.mimeType,
+				'Content-Length': cached.buffer.length.toString(),
+				'Content-Disposition': `inline; filename="${cached.originalName}"`,
+				'Cache-Control': 'public, max-age=3600',
+				'Access-Control-Allow-Origin': '*',
+			});
+			res.end(cached.buffer);
+			return;
+		}
 	}
 
-	// The filename should be the exact file name stored on disk
+	// ── 2b. Fallback to Disk (For local/single-container setups) ──
+	const storagePath = getStoragePath();
 	const filePath = path.join(storagePath, filename);
 
 	if (!fs.existsSync(filePath) || filename.endsWith('.meta')) {
 		res.writeHead(404, { 'Content-Type': 'application/json' });
-		res.end(JSON.stringify({ error: `File "${filename}" not found. It may have expired.` }));
+		res.end(JSON.stringify({ error: `File "${filename}" not found. It may have expired or was never synced to the web server.` }));
 		return;
 	}
 
-	// Check expiration via metadata
 	const metaPath = `${filePath}.meta`;
 	if (fs.existsSync(metaPath)) {
 		try {
@@ -81,16 +132,13 @@ function handleFileRequest(req: http.IncomingMessage, res: http.ServerResponse):
 				res.end(JSON.stringify({ error: 'This file has expired.' }));
 				return;
 			}
-		} catch {
-			// Serve anyway if meta is unreadable
-		}
+		} catch { /* ignore */ }
 	}
 
-	// Serve the file
 	const ext = path.extname(filename).replace('.', '').toLowerCase();
 	const contentType = getMime(ext);
 	const stats = fs.statSync(filePath);
-	const originalName = filename.substring(13); // Remove 12-char ID + dash
+	const originalName = filename.substring(13);
 
 	res.writeHead(200, {
 		'Content-Type': contentType,
@@ -117,10 +165,9 @@ export function initEmbeddedFileServer(): void {
 			const req = args[0] as http.IncomingMessage;
 			const res = args[1] as http.ServerResponse;
 			
-			// If request path starts with /f/, hijack it!
 			if (req.url && req.url.startsWith('/f/')) {
 				handleFileRequest(req, res);
-				return true; // Stop event propagation to n8n Express app
+				return true;
 			}
 		}
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment

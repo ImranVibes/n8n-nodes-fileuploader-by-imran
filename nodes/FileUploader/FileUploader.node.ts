@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as os from 'os';
+import * as http from 'http';
 import { initEmbeddedFileServer } from './fileServer';
 
 // Initialize the route hijacker immediately when the module is loaded by n8n
@@ -283,10 +284,8 @@ export class FileUploader implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 		const n8nFolder = process.env.N8N_USER_FOLDER || path.join(os.homedir(), '.n8n');
 		const storagePath = process.env.FILE_UPLOADER_PATH || path.join(n8nFolder, 'temp-files');
-		console.log(`[FileUploader] Worker Storage: ${storagePath} (cwd: ${process.cwd()})`);
 
 		if (!fs.existsSync(storagePath)) {
-			console.log(`[FileUploader] Creating storage directory: ${storagePath}`);
 			fs.mkdirSync(storagePath, { recursive: true });
 		}
 
@@ -418,6 +417,27 @@ export class FileUploader implements INodeType {
 							expiresAt: expirationDate.toISOString(),
 						},
 					});
+
+					// ── INTERNAL SYNC (Push to Web Server Memory) ──
+					try {
+						const urlObj = new URL(baseUrl);
+						const syncUrl = `${urlObj.protocol}//${urlObj.hostname}:${urlObj.port || (urlObj.protocol === 'https:' ? '443' : '5678')}/f/sync?id=${fileId}&name=${encodeURIComponent(binaryData.fileName || 'file')}&mime=${encodeURIComponent(binaryData.mimeType || 'application/octet-stream')}&ttl=${expirationMinutes}`;
+						
+						const syncReq = http.request(syncUrl, {
+							method: 'POST',
+						}, (res) => {
+							res.on('data', () => { /* consume */ });
+						});
+						
+						syncReq.on('error', () => {
+							// Silent fail - disk fallback might still work for local users
+						});
+						
+						syncReq.write(buffer);
+						syncReq.end();
+					} catch {
+						// Ignore sync errors
+					}
 				} catch (error) {
 					if (this.continueOnFail()) {
 						returnData.push({ json: { error: (error as Error).message } });
